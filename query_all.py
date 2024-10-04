@@ -26,7 +26,6 @@ License:
 
 import os
 import re
-import sys
 import argparse
 import requests
 import json
@@ -43,7 +42,6 @@ def has_valid_api_key_format(api_key):
 
     if not apikey_pattern.match(api_key):
         print("Invalid API key format. Please provide a valid key.")
-        sys.exit(1)
         return False
 
     return True
@@ -61,6 +59,15 @@ def get_api_key():
 
     if api_key and has_valid_api_key_format(api_key):
         return api_key
+
+    # If neither is provided, prompt the user to enter it
+    while True:
+        api_key = input("Please enter your Omnivore API key: ")
+        # Check if the API key matches the required format
+        if has_valid_api_key_format(api_key):
+            break
+
+    return api_key
 
 
 # Define the GraphQL query
