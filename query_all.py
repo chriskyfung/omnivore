@@ -150,9 +150,14 @@ while has_next_page:
     except Exception as err:
         print(f"An unexpected error occurred: {err}")
     finally:
-        print(f"        {after_cursor} of {total_count}")
+        # Calculate the progress percentage
+        progress_percentage = (len(nodes) / total_count) * 100 if total_count else 0
+        print(f"\r    Progress: Fetched {progress_percentage:.2f}% ({len(nodes)} of {total_count})", end='', flush=True)
+        
         # Set an interval between each API call
         time.sleep(sleep_time_seconds)  # Sleep for 3 seconds (adjust as needed)
+
+print("\nWriting data to file...")
 
 # Save nodes to a JSON file
 with open('nodes-id-url.json', 'w') as file:
