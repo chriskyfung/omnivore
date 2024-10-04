@@ -11,7 +11,7 @@ def read_json_file(file_path):
         data = json.load(file)
     return data
 
-# Function to convert JSON data to TSV format with specified length limit
+# Function to convert JSON data to CSV format with specified length limit
 def convert_to_csv(data, length_limit=30000):
     csv_lines = []
     current_line = ""
@@ -34,7 +34,7 @@ def convert_to_csv(data, length_limit=30000):
 
     return '"' + '","'.join(csv_lines) + '"'
 
-# Function to save TSV data to a file
+# Function to save CSV data to a file
 def save_csv_file(file_path, csv_data):
     with open(file_path, 'w') as file:
         file.write(csv_data)
@@ -47,13 +47,13 @@ def main():
     # Read JSON data from file
     data = read_json_file(json_file_path)
 
-    # Convert JSON data to TSV format
+    # Convert JSON data to CSV format
     csv_data = convert_to_csv(data)
 
-    # Save TSV data to file
+    # Save CSV data to file
     save_csv_file(csv_file_path, csv_data)
 
-    print(f"TSV data has been saved to {csv_file_path}")
+    print(f"CSV data has been saved to {csv_file_path}")
 
 if __name__ == "__main__":
     main()
