@@ -11,6 +11,7 @@ Description:
     1. Initializes pagination with `after_cursor` set to `None`.
     2. Makes requests to a GraphQL API, paginating through the results until there are no more pages.
     3. Extracts each `node` from the response and saves them to a JSON file named `nodes-id-url.json`.
+    4. Validates the API key format and retrieves it from command line arguments or environment variables.
 
 Usage:
     python query_all.py --apikey YOUR_API_KEY
@@ -24,6 +25,8 @@ License:
 """
 
 import os
+import re
+import sys
 import argparse
 import requests
 import json
@@ -32,7 +35,19 @@ import json
 url = "https://api-prod.omnivore.app/api/graphql"
 
 
-apikey = "<your-omnivore-api-key>"
+def has_valid_api_key_format(api_key):
+    # Regular expression pattern for the API key format
+    apikey_pattern = re.compile(
+        r"^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$"
+    )
+
+    if not apikey_pattern.match(api_key):
+        print("Invalid API key format. Please provide a valid key.")
+        sys.exit(1)
+        return False
+
+    return True
+
 
 def get_api_key():
     # Check if it's provided as a command line argument
@@ -41,13 +56,10 @@ def get_api_key():
     args = parser.parse_args()
 
     # Check if the API key matches the required format
-    if args.apikey:
-        return args.apikey
-
     # If not set, check if the API key is set as an environment variable
-    api_key = os.getenv("OMNIVORE_API_KEY")
+    api_key = args.apikey or os.getenv("OMNIVORE_API_KEY")
 
-    if api_key:
+    if api_key and has_valid_api_key_format(api_key):
         return api_key
 
 
