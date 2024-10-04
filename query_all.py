@@ -28,6 +28,7 @@ import os
 import re
 import argparse
 import requests
+import time
 import json
 
 # Define the GraphQL endpoint
@@ -113,6 +114,7 @@ nodes = []
 max_length_per_cell = 50000
 current_length = 0
 cum_length_in_cell = 0
+sleep_time_seconds = 100 * 0.05
 
 apikey = get_api_key()
 
@@ -145,6 +147,9 @@ while has_next_page:
         print(f"Request error occurred: {req_err}")
     except Exception as err:
         print(f"An unexpected error occurred: {err}")
+    finally:
+        # Set an interval between each API call
+        time.sleep(sleep_time_seconds)  # Sleep for 3 seconds (adjust as needed)
 
 # Save nodes to a JSON file
 with open('nodes-id-url.json', 'w') as file:
