@@ -1,7 +1,27 @@
-# This script will:
-# 1. Initialize the pagination with `after_cursor` set to `None`.
-# 2. Make requests to the GraphQL API, paginating through the results until there are no more pages.
-# 3. Extract each `node` and save it as a new line in a `nodes.txt` file.
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+File: query_all.py
+Author: Chris K.Y. Fung
+website: chriskyfung.github.io
+Date: 2024-10-04
+
+Description:
+    This script performs the following tasks:
+    1. Initializes pagination with `after_cursor` set to `None`.
+    2. Makes requests to a GraphQL API, paginating through the results until there are no more pages.
+    3. Extracts each `node` from the response and saves them to a JSON file named `nodes-id-url.json`.
+
+Usage:
+    python query_all.py --apikey YOUR_API_KEY
+
+Requirements:
+    - Python 3.x
+    - requests library
+
+License:
+    AGPL-3.0 License. See LICENSE file for details.
+"""
 
 import os
 import argparse
