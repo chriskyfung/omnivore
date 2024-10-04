@@ -88,6 +88,7 @@ query Search($after: String, $searchTerms: String!) {
             }
             pageInfo {
                 hasNextPage
+                totalCount
             }
         }
     }
@@ -118,7 +119,7 @@ sleep_time_seconds = 100 * 0.05
 
 apikey = get_api_key()
 
-print("Start querying...")
+print("Start querying...\n    Progress:")
 
 # Paginate through the results
 while has_next_page:
@@ -136,6 +137,7 @@ while has_next_page:
             after_cursor = data["edges"][-1]["cursor"]
 
         has_next_page = data["pageInfo"]["hasNextPage"]
+        total_count = data["pageInfo"]["totalCount"]
 
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error occurred: {http_err}")
@@ -148,6 +150,7 @@ while has_next_page:
     except Exception as err:
         print(f"An unexpected error occurred: {err}")
     finally:
+        print(f"        {after_cursor} of {total_count}")
         # Set an interval between each API call
         time.sleep(sleep_time_seconds)  # Sleep for 3 seconds (adjust as needed)
 
