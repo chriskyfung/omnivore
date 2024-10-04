@@ -58,6 +58,7 @@ def convert_to_csv(data: List[Dict], length_limit: int = LENGTH_LIMIT) -> str:
     if current_line:
         csv_lines.append(current_line.replace(' ', '').replace('"', '""'))
 
+    print(f"   The dataset, containing {len(data)} items, has been partitioned into {len(csv_lines)} columns.")
     return '"' + '","'.join(csv_lines) + '"'
 
 def save_csv_file(file_path: str, csv_data: str) -> None:
