@@ -22,17 +22,14 @@ pip install requests
 
 1. **Generate an API Key**: Log in to your Omnivore account and navigate to [Omnivore API Settings](https://omnivore.app/settings/api). Generate a new API key.
 
-2. **Update the Script**: Open the `search.py` script and replace `<your-omnivore-api-key>` with your newly generated API key.
+2. **Execute the Script**: Run the script from the command line using the following command:
 
-    ```python
-    apikey = "<your-omnivore-api-key>"
-    ```
+   ```shell
+   python query_all.py --apikey your-api-key
+   ```
 
-3. **Execute the Script**: Run the `search.py` script to retrieve all pages' ID and URL pairs from the Omnivore API and save them as a JSON file.
-
-    ```bash
-    python search.py
-    ```
+   If the `--apikey` option is not provided, the script will search for the `OMNIVORE_API_KEY` environment variable.
+   The `query_all.py` script retrieves all pages' ID and URL pairs from the Omnivore API and saves them as a JSON file.
 
 ### Converting JSON to CSV
 
