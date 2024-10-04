@@ -1,18 +1,44 @@
-# This script includes the following steps:#
-# 1. Read JSON data from the file.
-# 2. Convert JSON data to CSV format with a cumulative length limit of 50,000 characters before each cell.
-# 3. Save the CSV data to a file.
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+File: json2csv.py
+Author: Chris K.Y. Fung
+website: chriskyfung.github.io
+Date: 2024-10-04
+
+Description:
+    This script reads JSON data from a file, converts it to CSV format with a cumulative length limit for each cell, and saves the CSV data to a file.
+
+Usage:
+    python json2csv.py
+
+Requirements:
+    - Python 3.x
+
+License:
+    AGPL-3.0 License. See LICENSE file for details.
+"""
 
 import json
+import os
+from typing import List, Dict
 
-# Function to read JSON data from a file
-def read_json_file(file_path):
-    with open(file_path, 'r') as file:
+# Constants
+JSON_FILE_PATH = 'nodes-id-url.json'
+CSV_FILE_PATH = 'nodes-id-url.csv'
+LENGTH_LIMIT = 30000
+
+def read_json_file(file_path: str) -> List[Dict]:
+    """Read JSON data from a file."""
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"File not found: {file_path}")
+    
+    with open(file_path, 'r', encoding='utf-8') as file:
         data = json.load(file)
     return data
 
-# Function to convert JSON data to CSV format with specified length limit
-def convert_to_csv(data, length_limit=30000):
+def convert_to_csv(data: List[Dict], length_limit: int = LENGTH_LIMIT) -> str:
+    """Convert JSON data to CSV format with specified length limit."""
     csv_lines = []
     current_line = ""
     current_length = 0
@@ -20,7 +46,7 @@ def convert_to_csv(data, length_limit=30000):
     for node in data:
         node_str = json.dumps(node)
         if current_length + len(node_str) > length_limit:
-            csv_lines.append(current_line.replace(' ','').replace('"', '""'))
+            csv_lines.append(current_line.replace(' ', '').replace('"', '""'))
             current_line = node_str
             current_length = len(node_str)
         else:
@@ -30,30 +56,32 @@ def convert_to_csv(data, length_limit=30000):
             current_length += len(node_str)
 
     if current_line:
-        csv_lines.append(current_line.replace(' ','').replace('"', '""'))
+        csv_lines.append(current_line.replace(' ', '').replace('"', '""'))
 
     return '"' + '","'.join(csv_lines) + '"'
 
-# Function to save CSV data to a file
-def save_csv_file(file_path, csv_data):
-    with open(file_path, 'w') as file:
+def save_csv_file(file_path: str, csv_data: str) -> None:
+    """Save CSV data to a file."""
+    with open(file_path, 'w', encoding='utf-8') as file:
         file.write(csv_data)
 
-# Main function
 def main():
-    json_file_path = 'nodes-id-url.json'
-    csv_file_path = 'nodes-id-url.csv'
+    """Main function to execute the script."""
+    try:
+        print("🚀 Starting JSON to CSV conversion...")
 
-    # Read JSON data from file
-    data = read_json_file(json_file_path)
+        # Read JSON data from file
+        data = read_json_file(JSON_FILE_PATH)
 
-    # Convert JSON data to CSV format
-    csv_data = convert_to_csv(data)
+        # Convert JSON data to CSV format
+        csv_data = convert_to_csv(data)
 
-    # Save CSV data to file
-    save_csv_file(csv_file_path, csv_data)
+        # Save CSV data to file
+        save_csv_file(CSV_FILE_PATH, csv_data)
 
-    print(f"CSV data has been saved to {csv_file_path}")
+        print(f"✅ Data successfully saved to {CSV_FILE_PATH}")
+    except Exception as e:
+        print(f"❌ An error occurred: {e}")
 
 if __name__ == "__main__":
     main()
