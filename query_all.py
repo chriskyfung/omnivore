@@ -3,12 +3,33 @@
 # 2. Make requests to the GraphQL API, paginating through the results until there are no more pages.
 # 3. Extract each `node` and save it as a new line in a `nodes.txt` file.
 
+import os
+import argparse
 import requests
 import json
 
 # Define the GraphQL endpoint
 url = "https://api-prod.omnivore.app/api/graphql"
+
+
 apikey = "<your-omnivore-api-key>"
+
+def get_api_key():
+    # Check if it's provided as a command line argument
+    parser = argparse.ArgumentParser(description="Process API key.")
+    parser.add_argument("--apikey", type=str, help="API key for Omnivore")
+    args = parser.parse_args()
+
+    # Check if the API key matches the required format
+    if args.apikey:
+        return args.apikey
+
+    # If not set, check if the API key is set as an environment variable
+    api_key = os.getenv("OMNIVORE_API_KEY")
+
+    if api_key:
+        return api_key
+
 
 # Define the GraphQL query
 query = """
@@ -46,6 +67,9 @@ nodes = []
 max_length_per_cell = 50000
 current_length = 0
 cum_length_in_cell = 0
+
+apikey = get_api_key()
+
 
 # Paginate through the results
 while has_next_page:
