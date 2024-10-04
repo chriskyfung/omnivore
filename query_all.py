@@ -109,6 +109,7 @@ cum_length_in_cell = 0
 
 apikey = get_api_key()
 
+print("Start querying...")
 
 # Paginate through the results
 while has_next_page:
@@ -132,4 +133,4 @@ with open('nodes-id-url.json', 'w') as file:
             file.write(',\n')
     file.write('\n]\n')
 
-print("Nodes have been saved to nodes-id-url.json")
+print("Saved to nodes-id-url.json")
