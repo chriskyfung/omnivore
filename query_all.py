@@ -42,7 +42,7 @@ def has_valid_api_key_format(api_key):
     )
 
     if not apikey_pattern.match(api_key):
-        print("Invalid API key format. Please provide a valid key.")
+        print("❌ Error: Invalid API key format. Please provide a valid key.")
         return False
 
     return True
@@ -63,7 +63,7 @@ def get_api_key():
 
     # If neither is provided, prompt the user to enter it
     while True:
-        api_key = input("Please enter your Omnivore API key: ")
+        api_key = input("🔑 Please enter your Omnivore API key: ")
         # Check if the API key matches the required format
         if has_valid_api_key_format(api_key):
             break
@@ -88,6 +88,7 @@ query Search($after: String, $searchTerms: String!) {
             }
             pageInfo {
                 hasNextPage
+                totalCount
             }
         }
     }
@@ -118,7 +119,7 @@ sleep_time_seconds = 100 * 0.05
 
 apikey = get_api_key()
 
-print("Start querying...")
+print("🔍 Initiating data query...")
 
 # Paginate through the results
 while has_next_page:
@@ -136,20 +137,27 @@ while has_next_page:
             after_cursor = data["edges"][-1]["cursor"]
 
         has_next_page = data["pageInfo"]["hasNextPage"]
+        total_count = data["pageInfo"]["totalCount"]
 
     except requests.exceptions.HTTPError as http_err:
-        print(f"HTTP error occurred: {http_err}")
+        print(f"❌ HTTP error occurred: {http_err}")
     except requests.exceptions.ConnectionError as conn_err:
-        print(f"Connection error occurred: {conn_err}")
+        print(f"❌ Connection error occurred: {conn_err}")
     except requests.exceptions.Timeout as timeout_err:
-        print(f"Timeout error occurred: {timeout_err}")
+        print(f"⏳ Timeout error occurred: {timeout_err}")
     except requests.exceptions.RequestException as req_err:
-        print(f"Request error occurred: {req_err}")
+        print(f"❌ Request error occurred: {req_err}")
     except Exception as err:
-        print(f"An unexpected error occurred: {err}")
+        print(f"⚠️ An unexpected error occurred: {err}")
     finally:
+        # Calculate the progress percentage
+        progress_percentage = (len(nodes) / total_count) * 100 if total_count else 0
+        print(f"\r    Progress: Fetched {progress_percentage:.2f}% ({len(nodes)} of {total_count})", end='', flush=True)
+        
         # Set an interval between each API call
         time.sleep(sleep_time_seconds)  # Sleep for 3 seconds (adjust as needed)
+
+print("\n💾 Writing data to file...")
 
 # Save nodes to a JSON file
 with open('nodes-id-url.json', 'w') as file:
@@ -160,4 +168,4 @@ with open('nodes-id-url.json', 'w') as file:
             file.write(',\n')
     file.write('\n]\n')
 
-print("Saved to nodes-id-url.json")
+print("✅ Data successfully saved to nodes-id-url.json")
