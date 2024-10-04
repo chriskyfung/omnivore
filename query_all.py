@@ -72,8 +72,8 @@ def get_api_key():
 
 # Define the GraphQL query
 query = """
-query Search($after: String) {
-    search(after: $after, first: 100, query: "in:all") {
+query Search($after: String, $searchTerms: String!) {
+    search(after: $after, first: 100, query: $searchTerms) {
         ... on SearchError {
             errorCodes
         }
@@ -93,15 +93,22 @@ query Search($after: String) {
 }
 """
 
+
 # Function to make a request to the GraphQL API
-def make_request(after_cursor):
-    variables = {"after": after_cursor}
-    response = requests.post(url, json={'query': query, 'variables': variables}, headers={'Content-Type':'application/json','Authorization': apikey})
-    return response.json()
+def make_request(after_cursor, searchTerms):
+    variables = {"after": after_cursor, "searchTerms": searchTerms}
+    response = requests.post(
+        url,
+        json={"query": query, "variables": variables},
+        headers={"Content-Type": "application/json", "Authorization": apikey},
+    )
+    return response
+
 
 # Initialize variables
 after_cursor = None
 has_next_page = True
+search_terms = "in:all"
 nodes = []
 max_length_per_cell = 50000
 current_length = 0
@@ -109,19 +116,35 @@ cum_length_in_cell = 0
 
 apikey = get_api_key()
 
+print("Start querying...")
 
 # Paginate through the results
 while has_next_page:
-    result = make_request(after_cursor)
-    data = result.get('data', {}).get('search', {})
-    
-    if 'edges' in data:
-        for edge in data['edges']:
-            nodes.append(edge['node'])
-        after_cursor = data['edges'][-1]['cursor']
-        has_next_page = data['pageInfo']['hasNextPage']
-    else:
-        has_next_page = False
+    try:
+        # Call the make_request function
+        response = make_request(after_cursor, search_terms)
+        response.raise_for_status()  # Raises an HTTPError for bad responses (4xx and 5xx)
+
+        # If the request was successful, extract the data
+        data = response.json().get("data", {}).get("search", {})
+
+        if "edges" in data:
+            for edge in data["edges"]:
+                nodes.append(edge["node"])
+            after_cursor = data["edges"][-1]["cursor"]
+
+        has_next_page = data["pageInfo"]["hasNextPage"]
+
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err}")
+    except requests.exceptions.ConnectionError as conn_err:
+        print(f"Connection error occurred: {conn_err}")
+    except requests.exceptions.Timeout as timeout_err:
+        print(f"Timeout error occurred: {timeout_err}")
+    except requests.exceptions.RequestException as req_err:
+        print(f"Request error occurred: {req_err}")
+    except Exception as err:
+        print(f"An unexpected error occurred: {err}")
 
 # Save nodes to a JSON file
 with open('nodes-id-url.json', 'w') as file:
@@ -132,4 +155,4 @@ with open('nodes-id-url.json', 'w') as file:
             file.write(',\n')
     file.write('\n]\n')
 
-print("Nodes have been saved to nodes-id-url.json")
+print("Saved to nodes-id-url.json")
