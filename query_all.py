@@ -30,49 +30,11 @@ import argparse
 import requests
 import time
 import json
+from typing import Optional, List, Dict
 
-# Define the GraphQL endpoint
-url = "https://api-prod.omnivore.app/api/graphql"
-
-
-def has_valid_api_key_format(api_key):
-    # Regular expression pattern for the API key format
-    apikey_pattern = re.compile(
-        r"^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$"
-    )
-
-    if not apikey_pattern.match(api_key):
-        print("❌ Error: Invalid API key format. Please provide a valid key.")
-        return False
-
-    return True
-
-
-def get_api_key():
-    # Check if it's provided as a command line argument
-    parser = argparse.ArgumentParser(description="Process API key.")
-    parser.add_argument("--apikey", type=str, help="API key for Omnivore")
-    args = parser.parse_args()
-
-    # Check if the API key matches the required format
-    # If not set, check if the API key is set as an environment variable
-    api_key = args.apikey or os.getenv("OMNIVORE_API_KEY")
-
-    if api_key and has_valid_api_key_format(api_key):
-        return api_key
-
-    # If neither is provided, prompt the user to enter it
-    while True:
-        api_key = input("🔑 Please enter your Omnivore API key: ")
-        # Check if the API key matches the required format
-        if has_valid_api_key_format(api_key):
-            break
-
-    return api_key
-
-
-# Define the GraphQL query
-query = """
+# Constants
+GRAPHQL_ENDPOINT = "https://api-prod.omnivore.app/api/graphql"
+QUERY = """
 query Search($after: String, $searchTerms: String!) {
     search(after: $after, first: 100, query: $searchTerms) {
         ... on SearchError {
@@ -94,78 +56,94 @@ query Search($after: String, $searchTerms: String!) {
     }
 }
 """
+SLEEP_TIME_SECONDS = 5
 
+def check_api_key_format(api_key: str) -> bool:
+    """Validate the API key format."""
+    apikey_pattern = re.compile(
+        r"^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$"
+    )
+    if not apikey_pattern.match(api_key):
+        print("❌ Error: Invalid API key format. Please provide a valid key.")
+        return False
+    return True
+
+def get_api_key() -> str:
+    """Retrieve the API key from command line arguments or environment variables."""
+    parser = argparse.ArgumentParser(description="Process API key.")
+    parser.add_argument("--apikey", type=str, help="API key for Omnivore")
+    args = parser.parse_args()
+
+    api_key = args.apikey or os.getenv("OMNIVORE_API_KEY")
+    if api_key and check_api_key_format(api_key):
+        return api_key
+
+    while True:
+        api_key = input("🔑 Please enter your Omnivore API key: ")
+        if check_api_key_format(api_key):
+            return api_key
+        
 
 # Function to make a request to the GraphQL API
-def make_request(after_cursor, searchTerms):
-    variables = {"after": after_cursor, "searchTerms": searchTerms}
+def make_request(api_key: str, after_cursor: Optional[str], search_terms: str) -> requests.Response:
+    """Make a request to the GraphQL API."""
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": api_key
+    }
+    variables = {"after": after_cursor, "searchTerms": search_terms}
     response = requests.post(
-        url,
-        json={"query": query, "variables": variables},
-        headers={"Content-Type": "application/json", "Authorization": apikey},
+        GRAPHQL_ENDPOINT,
+        json={"query": QUERY, "variables": variables},
+        headers=headers
     )
+    response.raise_for_status()
     return response
 
 
-# Initialize variables
-after_cursor = None
-has_next_page = True
-search_terms = "in:all"
-nodes = []
-max_length_per_cell = 50000
-current_length = 0
-cum_length_in_cell = 0
-sleep_time_seconds = 100 * 0.05
+def fetch_data(api_key: str, search_terms: str = "in:all") -> List[Dict]:
+    """Fetch data from the API and return a list of nodes."""
+    after_cursor = None
+    nodes = []
+    has_next_page = True
 
-apikey = get_api_key()
+    while has_next_page:
+        try:
+            response = make_request(api_key, after_cursor, search_terms)
+            data = response.json().get("data", {}).get("search", {})
 
-print("🔍 Initiating data query...")
+            if "edges" in data:
+                nodes.extend(edge["node"] for edge in data["edges"])
+                after_cursor = data["edges"][-1]["cursor"]
 
-# Paginate through the results
-while has_next_page:
-    try:
-        # Call the make_request function
-        response = make_request(after_cursor, search_terms)
-        response.raise_for_status()  # Raises an HTTPError for bad responses (4xx and 5xx)
+            has_next_page = data["pageInfo"]["hasNextPage"]
+            total_count = data["pageInfo"]["totalCount"]
+            progress_percentage = (len(nodes) / total_count) * 100 if total_count else 0
+            print(f"\r    Progress: Fetched {progress_percentage:.2f}% ({len(nodes)} of {total_count})", end='', flush=True)
 
-        # If the request was successful, extract the data
-        data = response.json().get("data", {}).get("search", {})
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Request error occurred: {e}")
+            break
+        except Exception as e:
+            print(f"⚠️ An unexpected error occurred: {e}")
+            break
+        finally:
+            time.sleep(SLEEP_TIME_SECONDS)
 
-        if "edges" in data:
-            for edge in data["edges"]:
-                nodes.append(edge["node"])
-            after_cursor = data["edges"][-1]["cursor"]
+    return nodes
 
-        has_next_page = data["pageInfo"]["hasNextPage"]
-        total_count = data["pageInfo"]["totalCount"]
+def save_to_file(nodes: List[Dict], filename: str = "nodes-id-url.json") -> None:
+    """Save nodes to a JSON file."""
+    with open(filename, "w") as file:
+        json.dump(nodes, file, indent=4)
+    print("\n✅ Data successfully saved to nodes-id-url.json")
 
-    except requests.exceptions.HTTPError as http_err:
-        print(f"❌ HTTP error occurred: {http_err}")
-    except requests.exceptions.ConnectionError as conn_err:
-        print(f"❌ Connection error occurred: {conn_err}")
-    except requests.exceptions.Timeout as timeout_err:
-        print(f"⏳ Timeout error occurred: {timeout_err}")
-    except requests.exceptions.RequestException as req_err:
-        print(f"❌ Request error occurred: {req_err}")
-    except Exception as err:
-        print(f"⚠️ An unexpected error occurred: {err}")
-    finally:
-        # Calculate the progress percentage
-        progress_percentage = (len(nodes) / total_count) * 100 if total_count else 0
-        print(f"\r    Progress: Fetched {progress_percentage:.2f}% ({len(nodes)} of {total_count})", end='', flush=True)
-        
-        # Set an interval between each API call
-        time.sleep(sleep_time_seconds)  # Sleep for 3 seconds (adjust as needed)
+def main():
+    """Main function to execute the script."""
+    api_key = get_api_key()
+    print("🔍 Initiating data query...")
+    nodes = fetch_data(api_key)
+    save_to_file(nodes)
 
-print("\n💾 Writing data to file...")
-
-# Save nodes to a JSON file
-with open('nodes-id-url.json', 'w') as file:
-    file.write('[\n')
-    for i, node in enumerate(nodes):
-        file.write(json.dumps(node))
-        if i < len(nodes) - 1:
-            file.write(',\n')
-    file.write('\n]\n')
-
-print("✅ Data successfully saved to nodes-id-url.json")
+if __name__ == "__main__":
+    main()
